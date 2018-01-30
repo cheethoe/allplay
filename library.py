@@ -14,6 +14,7 @@ class Library(object):
         self.sql = '''SELECT media_id, mount_alias, path, mtime, times_played FROM media'''
 
     def populate_from_db(self, config, sql=None, sql_params=None):
+        self.library.clear()
         if sql is not None:
             if sql_params is None:
                 iterator = self.db.db_query_iterator(sql)
@@ -31,6 +32,7 @@ class Library(object):
                                         "mtime": mtime,
                                         "times_played": times_played
                                       }
+        self.db.sqlite_conn.commit()
         self.logger.debug("populate_from_db Library: %s" % self.library)
 
 
@@ -50,7 +52,7 @@ class Library(object):
                         sql += ","
                     sql += "?"
                     sql_params.append(tag)
-                sql += ")"
+                sql += "))"
             elif tag_andor == "and" and len(tags) > 0:
                 # Search for media with all of the listed tags
                 sql += " ("
@@ -62,18 +64,23 @@ class Library(object):
                                WHERE t.tag_id = mt.tag_id
                                AND t.tag_name = ?'''
                     sql_params.append(tag)
-                sql += " )"
+                sql += " ))"
             if len(search_strings) > 0:
                 # Build portion of query for search strings in path
                 if len(sql_params) > 0:
+                    param_end = ")"
                     sql += " AND ("
+                else:
+                    param_end = ""
                 for idx, search_string in enumerate(search_strings):
                     if idx > 0:
                         sql += " " + search_strings_andor + " "
-                    sql += " path LIKE '%?%'"
-                    sql_params.append(search_string)
-                sql += ")"
-        self.populate_from_db(config, sql, sql_params)
+                    sql += " path LIKE ?"
+                    sql_params.append('%' + search_string + '%')
+                sql += param_end
+        self.logger.debug(sql)
+        self.logger.debug(sql_params)
+        self.populate_from_db(config, sql, tuple(sql_params))
                     
                 
 

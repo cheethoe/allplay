@@ -4,6 +4,7 @@ import datetime
 import logging
 import os
 import sqlite3
+import subprocess
 import sys
 from tzlocal import get_localzone
 
@@ -16,9 +17,11 @@ class Database(object):
         self.s3_database_bucket = s3_database_bucket
         self.s3_database_filename = s3_database_filename
         self.s3_database_profile = s3_database_profile
+        self._s3_sync_enable = True
 
     def __enter__(self):
-        self.s3_to_local()
+        if self._s3_sync_enable:
+            self.s3_to_local()
         self.sqlite_conn = self.db_connect()
         self.sqlite_cursor = self.sqlite_conn.cursor()
         self.initialize_schema()
@@ -27,15 +30,39 @@ class Database(object):
     def __exit__(self, type, value, traceback):
         self.sqlite_cursor.close()
         self.db_close()
-        self.local_to_s3()
+        if self._s3_sync_enable:
+            self.local_to_s3()
+
+    def s3_sync_toggle(self, enable=False):
+        self._s3_sync_enable = enable
+
+    def local_db_modified(self):
+        timezone = get_localzone()
+        if os.path.isfile(self.local_database):
+            local_last_modified = timezone.localize(datetime.datetime.fromtimestamp(os.path.getmtime(self.local_database)) + datetime.timedelta(minutes=1))
+        else:
+            local_last_modified = timezone.localize(datetime.datetime.min + datetime.timedelta(minutes=30000))
+        return local_last_modified
+
+    def local_db_age_sec(self):
+        timezone = get_localzone()
+        local_last_modified = self.local_db_modified()
+        delta = timezone.localize(datetime.datetime.now()) - local_last_modified
+        return int(delta.total_seconds())
 
     def s3_to_local(self):
+        # Check to see if DB is opened by any processes, if so, skip
+        try:
+            fuser = subprocess.run(["/bin/fuser", self.local_database])
+            if fuser.returncode == 0:
+                # Something has the sqlite file open
+                self.logger.debug("Skipping sync from S3, {0} is opened: {1}".format(self.local_database, fuser.stdout))
+                return False
+        except:
+            return False
         if self.s3_database_bucket and self.s3_database_filename:
-            if os.path.isfile(self.local_database):
-                timezone = get_localzone()
-                local_last_modified = timezone.localize(datetime.datetime.fromtimestamp(os.path.getmtime(self.local_database)) + datetime.timedelta(minutes=1))
-            else:
-                local_last_modified = datetime.date.min
+            timezone = get_localzone()
+            local_last_modified = self.local_db_modified()
             self.logger.warning("Begining s3 to local sync.  Bucket: %s File: %s" % (self.s3_database_bucket, self.s3_database_filename))
             try:
                 session = boto3.session.Session(profile_name=self.s3_database_profile)
@@ -121,6 +148,7 @@ class Database(object):
 
     def insert_test_data(self):
         self.sqlite_cursor.execute('''INSERT INTO media (mount_alias, path) VALUES (?,?)''', ('td', 'testing123.mp4'))
+        self.sqlite_conn.commit()
 
     def db_query_iterator(self, query="SELECT * FROM media"):
         try:
@@ -134,7 +162,7 @@ class Database(object):
         try:
             iterator = self.sqlite_cursor.execute(query, parameters)
             return iterator
-        except ValueError as err:
+        except (ValueError, sqlite3.OperationalError) as err:
             self.logger.warning(err)
             raise
 
@@ -142,7 +170,9 @@ class Database(object):
         ''' Returns a tuple of (rowcount, lastrowid) '''
         try:
             self.sqlite_cursor.execute(query, parameters)
-            return (self.sqlite_cursor.rowcount, self.sqlite_cursor.lastrowid)
+            return_tuple = (self.sqlite_cursor.rowcount, self.sqlite_cursor.lastrowid)
+            self.sqlite_conn.commit()
+            return return_tuple
         except ValueError as err:
             self.logger.warning(err)
             raise

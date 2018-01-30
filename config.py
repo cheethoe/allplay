@@ -23,6 +23,7 @@ class Config(object):
         self.local_database = self.raw_config.get("local_database") or os.path.join(os.path.expanduser('~'),
                                                                                ".allplay",
                                                                                "allplay.sqlite3")
+        self.local_scan_delay = int(self.raw_config.get("local_scan_delay")) or 86400
         self.s3_database = self.raw_config.get("s3_database") or None
         self.quick_tags = self.raw_config.get("quick_tags") or None
         self.auto_tags = self.raw_config.get("auto_tags") or None

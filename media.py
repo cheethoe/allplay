@@ -23,6 +23,21 @@ class Media(object):
         else:
             self.files = list()
 
+    def increment_times_played(self):
+        sql = '''UPDATE media
+                 SET times_played = ?
+                 WHERE media_id = ?
+                 LIMIT 1'''
+        self.times_played += 1
+        params = (self.times_played, self.media_id)
+        (assoc_rowcount, assoc_lastrowid) = self.db.db_insert(sql, params)
+        if assoc_rowcount == 1:
+            self.logger.debug("Successfully incremented times_played to {0} for media_id {1}".format(self.times_played, self.media_id))
+            return True
+        else:
+            self.logger.debug("Failed to increment times_played to {0} for media_id {1}".format(self.times_played, self.media_id))
+            return False
+
     def get_tags(self):
         sql = '''SELECT t.tag_name 
                  FROM tags t, media_tags mt
@@ -31,6 +46,7 @@ class Media(object):
         params = (self.media_id,)
         # cursor.execute returns an iterator of rows, each row is a tuple)
         tags = [ tag[0] for tag in self.db.db_query_qmark_iterator(sql, params) ]
+        self.db.sqlite_conn.commit()
         self.tags = tags
 
     def add_tag(self, tag):
@@ -76,6 +92,7 @@ class Media(object):
                                 WHERE t.tag_id = mt.tag_id
                                 AND t.tag_name = ?'''
         num_assoc_media = [ row[0] for row in self.db.db_query_qmark_iterator(check_orphaned_sql, (tag,)) ]
+        self.db.sqlite_conn.commit()
         print(num_assoc_media)
         if int(num_assoc_media[0]) == 0:
             delete_actual_tag_sql = '''DELETE FROM tags WHERE tag_name = ?'''
@@ -105,6 +122,9 @@ class Media(object):
                 self.logger.warning("Cannot delete %s: is a mount" % self.full_path)
                 return False
         self.logger.warning("Deleting %s" % self.full_path)
+        # Remove tags first
+        for tag in self.tags:
+            self.remove_tag(tag)
         try:
             if os.path.isfile(self.full_path):
                 os.unlink(self.full_path)
@@ -158,6 +178,7 @@ class Media(object):
             self.logger.warning("trying to run command: %s" % (command))
             playing = subprocess.Popen(command, env=dict(os.environ), stdout=subprocess.PIPE)
             playing.wait()
+            self.increment_times_played()
         except subprocess.SubprocessError as err:
             self.logger.warning("Exception trying to run command: %s %s" % (err, command))
         except:
