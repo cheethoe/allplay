@@ -1,3 +1,4 @@
+from __future__ import (absolute_import, division, print_function, unicode_literals)
 import logging
 import os
 import shutil
@@ -179,7 +180,7 @@ class Media(object):
             playing = subprocess.Popen(command, env=dict(os.environ), stdout=subprocess.PIPE)
             playing.wait()
             self.increment_times_played()
-        except subprocess.SubprocessError as err:
+        except subprocess.CalledProcessError as err:
             self.logger.warning("Exception trying to run command: %s %s" % (err, command))
         except:
             self.logger.warning("Exception trying to run command: %s" % (command))

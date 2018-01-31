@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+from __future__ import (absolute_import, division, print_function, unicode_literals)
 import copy
 from config import Config
 from database import Database
@@ -7,9 +8,11 @@ import logging
 from media import Media
 from interface import Interface
 import random
+import sys
 
 def main():
-    logger = logging.getLogger(__name__)
+    logging.basicConfig(stream=sys.stdout, level=logging.WARNING, format='%(message)s')
+    logger = logging.getLogger()
     config = Config()
     #with Database(config.local_database) as db:
     with Database(config.local_database, config.s3_database['bucket'], config.s3_database['filename'], config.s3_database['profile']) as db:
