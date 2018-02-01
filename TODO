@@ -1,0 +1,7 @@
+* Make python package
+* Add tests
+* Document code
+* Make deletion of single media files delete from current media file list
+* Only output errors from Media player
+* Option to play only new files
+* Option to play only unplayed file or files with play counts lower than X
