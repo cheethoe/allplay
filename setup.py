@@ -5,20 +5,13 @@ setup(name='allplay',
       description='Manage while you consume media manager',
       author='Michael Hsu',
       author_email='cheeto@gmail.com',
-      url='https://github.com/cheethoe/allplay'
+      url='https://github.com/cheethoe/allplay',
       install_requires=['boto3',
-                        'collections',
-                        'copy',
-                        'datetime',
                         'future',
-                        'logging',
-                        'os',
-                        'random',
-                        'shutil',
-                        'sqlite3',
-                        'subprocess',
-                        'sys',
                         'tzlocal',
-                        'yaml'
-                       ]
+                        'pyyaml'],
+     packages=['allplay'],
+     entry_points={
+         'console_scripts': ['allplay=allplay.allplay:main']
+         },
 )
