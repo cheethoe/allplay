@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 import copy
-from config import Config
-from database import Database
-from library import Library
+from .config import Config
+from .database import Database
+from .library import Library
 import logging
-from media import Media
-from interface import Interface
+from .media import Media
+from .interface import Interface
 import random
 import sys
 
