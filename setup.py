@@ -20,5 +20,7 @@ setup(name='allplay',
                         'sys',
                         'tzlocal',
                         'yaml'
-                       ]
+                       ],
+     packages=['allplay'],
+     scripts=['allplay/allplay.py']
 )
