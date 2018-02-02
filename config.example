@@ -1,0 +1,58 @@
+# This file should go in ~/.allplay/config
+# THIS IS A YAML FILE!
+---:
+
+# Media sources are defined with:
+#   alias: mountpoint
+# The point of the alias is if you
+# use this application across multiple
+# machines, you may have different users
+# or different mount paths for the same remote
+# storage on each machine.  This allows you to
+# use a common alias so the media metadata
+# can still be synced across the machines with
+# different mount locations.
+media_sources:
+  media1: /home/user/media1
+  ex: /home/user/example
+local_database: /home/user/.allplay/allplay.sqlite3
+local_scan_delay: 86400
+
+# If you leave this empty or don't include it
+# syncing to and from S3 will be disabled.
+# If you do include it, make sure to setup
+# your ~/.aws/credentials
+s3_database:
+  profile: allplay
+  bucket: user-allplay
+  filename: allplay.sqlite3
+
+# When tagging media, you can define short quick tags
+# for common tags so you don't have to type them all out
+quick_tags:
+  f: favorite
+  h: horror
+  a: action
+  com: comedy
+  r: romance
+  e: etc
+
+# With auto_tags, if the main file/directory
+# contains the key, then it will tag with the value
+auto_tags:
+  love: romance
+  monster: horror
+  horror: horror
+media_handler: /usr/bin/mpv
+media_extensions:
+  - mpg
+  - mpeg
+  - mpeg2
+  - m4v
+  - mkv
+  - avi
+  - wmv
+  - flv
+  - mov
+  - ogm
+  - mp4
