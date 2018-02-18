@@ -39,10 +39,11 @@ def main():
             print("Tags:")
             menu.print_list_indexes(media.tags)
             menu_action = menu.media_menu()
-            logger.warn(menu_action)
+            logger.debug(menu_action)
             if menu_action == "next":
                 continue
             elif menu_action == "library_update":
+                logger.warn("Library has been updated, using new library.")
                 library_list = list(lib.library)
                 orig_library_length = len(lib.library)
                 random.shuffle(library_list)

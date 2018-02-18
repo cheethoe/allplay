@@ -37,15 +37,17 @@ class Database(object):
     def s3_sync_toggle(self, enable=False):
         self._s3_sync_enable = enable
 
-    def local_db_modified(self):
+    def local_db_modified(self, delta_minutes=1):
         timezone = get_localzone()
         if os.path.isfile(self.local_database):
-            local_last_modified = timezone.localize(datetime.datetime.fromtimestamp(os.path.getmtime(self.local_database)) + datetime.timedelta(minutes=1))
+            local_last_modified = timezone.localize(datetime.datetime.fromtimestamp(os.path.getmtime(self.local_database)) + datetime.timedelta(minutes=delta_minutes))
         else:
             local_last_modified = timezone.localize(datetime.datetime.min + datetime.timedelta(minutes=30000))
         return local_last_modified
 
     def local_db_age_sec(self):
+        # Currently unused, can't remember why I wrote this
+        # Remove if I really don't remember
         timezone = get_localzone()
         local_last_modified = self.local_db_modified()
         delta = timezone.localize(datetime.datetime.now()) - local_last_modified
@@ -89,16 +91,18 @@ class Database(object):
         if self.s3_database_bucket and self.s3_database_filename:
             if os.path.isfile(self.local_database):
                 timezone = get_localzone()
-                local_last_modified = timezone.localize(datetime.datetime.fromtimestamp(os.path.getmtime(self.local_database)))
+                local_last_modified = self.local_db_modified(delta_minutes=0)
+                #local_last_modified = timezone.localize(datetime.datetime.fromtimestamp(os.path.getmtime(self.local_database)))
                 try:
                     session = boto3.session.Session(profile_name=self.s3_database_profile)
                     s3 = session.resource('s3')
                     s3file = s3.Object(self.s3_database_bucket, self.s3_database_filename)
-                    if s3file.last_modified < local_last_modified:
-                        self.logger.warning("Uploading from Local ( %s ) to S3 ( %s ) due to modification date: " % (str(local_last_modified), str(s3file.last_modified)))
+                    s3_last_modified = s3file.last_modified.astimezone(timezone)
+                    if s3_last_modified < local_last_modified:
+                        self.logger.warning("Uploading from Local ( %s ) to S3 ( %s ) due to modification date: " % (str(local_last_modified), str(s3_last_modified)))
                         s3file.upload_file(self.local_database)
                     else:
-                        self.logger.warning("Not uploading from Local ( %s ) to S3 ( %s ) due to modification date: " % (str(local_last_modified), str(s3file.last_modified)))
+                        self.logger.warning("Not uploading from Local ( %s ) to S3 ( %s ) due to modification date: " % (str(local_last_modified), str(s3_last_modified)))
                 except (KeyboardInterrupt, SystemExit):
                     raise
                 except (ClientError) as cerr:

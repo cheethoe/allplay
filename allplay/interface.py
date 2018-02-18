@@ -185,11 +185,12 @@ class Interface(object):
 
     def library_rescan(self):
         for path_alias, path in self.config.media_sources.items():
-            self.lib.scan_source(self.config, path_alias, path)
+            self.lib.scan_source(config=self.config, path_alias=path_alias, path=path)
         self.lib.scanned_to_library_and_db(self.config)
+        return "library_update"
 
 
-    def db_menu(self):
+    def database_menu(self):
         menu_text = ("DB Actions:\n"
                      "(s) Sync from S3\n"
                      "(p) Push to S3\n"

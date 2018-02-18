@@ -1,6 +1,8 @@
 * Make python package
 * Add tests
 * Document code
+* Make db class keep track of db changes and sync to s3 if there are actual db changes?
+* Check if path media is not a file, and has no media files, then delete from db
 * Make deletion of single media files delete from current media file list
 * Only output errors from Media player
 * Option to play only new files

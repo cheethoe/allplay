@@ -1,4 +1,5 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
+from builtins import print
 import datetime
 from collections import defaultdict
 import logging
@@ -83,43 +84,87 @@ class Library(object):
         self.populate_from_db(config, sql, tuple(sql_params))
                     
                 
+    def decode_name(self, name):
+        # Attempt to deal with unicode decoding error.
+        if type(name) == str: # leave unicode ones alone
+            try:
+                name = name.decode('utf8')
+            except:
+                name = name.decode('windows-1252')
+        return name
+
 
     def scan_source(self, config, path_alias='here', path='.'):
         #with os.scandir(path) as dir_entries:
         try:
-            dir_entries = os.scandir(path)
-            for entry in dir_entries:
-                if entry.name.startswith('.'):
-                    # skip
-                    continue
-                elif entry.path in self.library:
-                    # skip, it's already in the library
-                    continue
-                elif entry.is_file():
-                    if entry.name.split('.')[-1] in config.media_extensions:
-                        self.library_scanned[entry.path] = { "mount_alias": path_alias,
-                                                             "path": entry.name,
-                                                             "mtime": datetime.datetime.fromtimestamp(entry.stat().st_mtime),
-                                                             "times_played": 0
-                                                           }
-                elif entry.is_dir():
-                    # Find files in dir and ensure at last one match the media_extensions
-                    self.logger.debug("Scanning possible media dir %s" % entry.path)
-                    media_files = self.scan_for_media_files(config, entry.path)
-                    try:
-                        media_file = next(media_files)
-                        self.library_scanned[entry.path] = { "mount_alias": path_alias,
-                                                             "path": entry.name,
-                                                             "mtime": datetime.datetime.fromtimestamp(entry.stat().st_mtime),
-                                                             "times_played": 0
-                                                           }
-                        del media_files
-                    except StopIteration:
-                        del media_files
-                        pass
+            if sys.version_info[0] < 3:
+                for entry in os.listdir(path):
+                    entry = self.decode_name(entry)
+                    self.logger.warning(entry)
+                    basename = os.path.basename(entry)
+                    if basename.startswith('.'):
+                        # skip
+                        continue
+                    elif entry in self.library:
+                        # skip, it's already in the library
+                        continue
+                    elif os.path.isfile(entry):
+                        if basename.split('.')[-1] in config.media_extensions:
+                            self.library_scanned[basename] = { "mount_alias": path_alias,
+                                                               "path": basename,
+                                                               "mtime": datetime.datetime.fromtimestamp(os.path.getmtime(entry)),
+                                                               "times_played": 0
+                                                             }
+                    elif os.path.isdir(entry):
+                        # Find files in dir and ensure at last one match the media_extensions
+                        self.logger.debug("Scanning possible media dir %s" % entry)
+                        media_files = self.scan_for_media_files(config, entry)
+                        try:
+                            media_file = next(media_files)
+                            self.library_scanned[basename] = { "mount_alias": path_alias,
+                                                               "path": basename,
+                                                               "mtime": datetime.datetime.fromtimestamp(os.path.getmtime(entry)),
+                                                               "times_played": 0
+                                                             }
+                            del media_files
+                        except StopIteration:
+                            del media_files
+                            pass
+            else:
+                dir_entries = os.scandir(path)
+                for entry in dir_entries:
+                    if entry.name.startswith('.'):
+                        # skip
+                        continue
+                    elif entry.path in self.library:
+                        # skip, it's already in the library
+                        continue
+                    elif entry.is_file():
+                        if entry.name.split('.')[-1] in config.media_extensions:
+                            self.library_scanned[entry.path] = { "mount_alias": path_alias,
+                                                                 "path": entry.name,
+                                                                 "mtime": datetime.datetime.fromtimestamp(entry.stat().st_mtime),
+                                                                 "times_played": 0
+                                                               }
+                    elif entry.is_dir():
+                        # Find files in dir and ensure at last one match the media_extensions
+                        self.logger.debug("Scanning possible media dir %s" % entry.path)
+                        media_files = self.scan_for_media_files(config, entry.path)
+                        try:
+                            media_file = next(media_files)
+                            self.library_scanned[entry.path] = { "mount_alias": path_alias,
+                                                                 "path": entry.name,
+                                                                 "mtime": datetime.datetime.fromtimestamp(entry.stat().st_mtime),
+                                                                 "times_played": 0
+                                                               }
+                            del media_files
+                        except StopIteration:
+                            del media_files
+                            pass
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:
+        except (AttributeError, Exception) as err:
+            print("Passing exception: {0}".format(err))
             pass
         self.logger.debug("scan_source Scanned Library updates: %s" % self.library_scanned)
 
@@ -128,7 +173,10 @@ class Library(object):
         # I'm hoping this will be lighter weight than an os.walk()
         try:
             for entry in os.listdir(path):
-                full_path = os.path.join(path, entry)
+                if sys.version_info[0] < 3:
+                    full_path = self.decode_name(os.path.join(path, entry))
+                else:
+                    full_path = os.path.join(path, entry)
                 if os.path.isdir(full_path):
                     yield self.scan_for_media_files(config, full_path)
                 elif os.path.isfile(full_path):
