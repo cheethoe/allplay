@@ -109,7 +109,7 @@ class Media(object):
         media_files = list()
         for path, dirs, files in os.walk(self.full_path):
             for found_file in files:
-                if found_file.split('.')[-1] in self.config.media_extensions:
+                if found_file.split('.')[-1].lower() in self.config.media_extensions:
                     self.logger.debug("Extension Match!: %s in %s" % (found_file, path))
                     media_files.append(os.path.join(path, found_file))
         return sorted(media_files)

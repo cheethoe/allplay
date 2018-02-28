@@ -109,7 +109,7 @@ class Library(object):
                         # skip, it's already in the library
                         continue
                     elif os.path.isfile(entry):
-                        if basename.split('.')[-1] in config.media_extensions:
+                        if basename.split('.')[-1].lower() in config.media_extensions:
                             self.library_scanned[basename] = { "mount_alias": path_alias,
                                                                "path": basename,
                                                                "mtime": datetime.datetime.fromtimestamp(os.path.getmtime(entry)),
@@ -140,7 +140,7 @@ class Library(object):
                         # skip, it's already in the library
                         continue
                     elif entry.is_file():
-                        if entry.name.split('.')[-1] in config.media_extensions:
+                        if entry.name.split('.')[-1].lower() in config.media_extensions:
                             self.library_scanned[entry.path] = { "mount_alias": path_alias,
                                                                  "path": entry.name,
                                                                  "mtime": datetime.datetime.fromtimestamp(entry.stat().st_mtime),
@@ -180,7 +180,7 @@ class Library(object):
                 if os.path.isdir(full_path):
                     yield self.scan_for_media_files(config, full_path)
                 elif os.path.isfile(full_path):
-                    if entry.split('.')[-1] in config.media_extensions:
+                    if entry.split('.')[-1].lower() in config.media_extensions:
                         yield full_path
         except (KeyboardInterrupt, SystemExit):
             raise
