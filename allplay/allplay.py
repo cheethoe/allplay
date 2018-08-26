@@ -7,6 +7,7 @@ from .library import Library
 import logging
 from .media import Media
 from .interface import Interface
+import os
 import random
 import sys
 

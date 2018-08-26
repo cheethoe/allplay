@@ -117,7 +117,7 @@ class Library(object):
                                                              }
                     elif os.path.isdir(entry):
                         # Find files in dir and ensure at last one match the media_extensions
-                        self.logger.debug("Scanning possible media dir %s" % entry)
+                        self.logger.warning("Scanning possible media dir %s" % entry)
                         media_files = self.scan_for_media_files(config, entry)
                         try:
                             media_file = next(media_files)
@@ -128,6 +128,7 @@ class Library(object):
                                                              }
                             del media_files
                         except StopIteration:
+                            self.logger.warning("No media found in dir %s" % entry.path)
                             del media_files
                             pass
             else:
@@ -148,7 +149,7 @@ class Library(object):
                                                                }
                     elif entry.is_dir():
                         # Find files in dir and ensure at last one match the media_extensions
-                        self.logger.debug("Scanning possible media dir %s" % entry.path)
+                        self.logger.warning("Scanning possible media dir %s" % entry.path)
                         media_files = self.scan_for_media_files(config, entry.path)
                         try:
                             media_file = next(media_files)
@@ -159,6 +160,7 @@ class Library(object):
                                                                }
                             del media_files
                         except StopIteration:
+                            self.logger.warning("No media found in dir %s" % entry.path)
                             del media_files
                             pass
         except (KeyboardInterrupt, SystemExit):

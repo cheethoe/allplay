@@ -21,8 +21,15 @@ class Media(object):
         self.exists = os.path.exists(self.full_path)
         if self.exists:
             self.files = self.get_files()
+            if os.path.isdir(self.full_path) and len(self.files) == 0:
+                self.logger.warning("No media found at {0}, removing from library".format(self.full_path))
+                if self.tags:
+                    for tag in self.tags:
+                        self.remove_tag(tag)
+                self.lib.delete_from_library_and_db(self.full_path)
         else:
             self.files = list()
+            self.delete()
 
     def increment_times_played(self):
         sql = '''UPDATE media
@@ -124,8 +131,9 @@ class Media(object):
                 return False
         self.logger.warning("Deleting %s" % self.full_path)
         # Remove tags first
-        for tag in self.tags:
-            self.remove_tag(tag)
+        if self.tags:
+            for tag in self.tags:
+                self.remove_tag(tag)
         try:
             if os.path.isfile(self.full_path):
                 os.unlink(self.full_path)
