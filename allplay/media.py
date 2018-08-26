@@ -133,6 +133,7 @@ class Media(object):
                 shutil.rmtree(self.full_path)
             else:
                 self.logger.warning("Cannot delete %s, not a file or directory" % self.full_path)
+                self.lib.delete_from_library_and_db(self.full_path)
                 return False
             self.lib.delete_from_library_and_db(self.full_path)
             return True

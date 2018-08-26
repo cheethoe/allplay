@@ -7,3 +7,4 @@
 * Only output errors from Media player
 * Option to play only new files
 * Option to play only unplayed file or files with play counts lower than X
+* Check for tag existance before attempting to insert
