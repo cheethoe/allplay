@@ -56,11 +56,12 @@ class Database(object):
     def s3_to_local(self):
         # Check to see if DB is opened by any processes, if so, skip
         try:
-            fuser = subprocess.run(["/bin/fuser", self.local_database])
-            if fuser.returncode == 0:
-                # Something has the sqlite file open
-                self.logger.debug("Skipping sync from S3, {0} is opened: {1}".format(self.local_database, fuser.stdout))
-                return False
+            if os.path.isfile(self.local_database):
+                fuser = subprocess.run(["/bin/fuser", self.local_database])
+                if fuser.returncode == 0:
+                    # Something has the sqlite file open
+                    self.logger.debug("Skipping sync from S3, {0} is opened: {1}".format(self.local_database, fuser.stdout))
+                    return False
         except:
             return False
         if self.s3_database_bucket and self.s3_database_filename:
