@@ -58,6 +58,9 @@ class Media(object):
         self.tags = tags
 
     def add_tag(self, tag):
+        # First check if tag already exists
+        if tag in self.tags:
+            return True
         # Insert the tag
         insert_tag_sql = '''INSERT INTO tags (tag_name)
                             SELECT (?)
@@ -191,6 +194,9 @@ class Media(object):
             self.increment_times_played()
         except subprocess.CalledProcessError as err:
             self.logger.warning("Exception trying to run command: %s %s" % (err, command))
+        except KeyboardInterrupt:
+            # Kill media player
+            playing.kill()
         except:
             self.logger.warning("Exception trying to run command: %s" % (command))
             raise

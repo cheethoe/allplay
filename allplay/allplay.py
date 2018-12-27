@@ -33,12 +33,10 @@ def main():
             full_path = library_list.pop()
             media = Media(config, lib, db, full_path)
             media.get_tags()
-            media.play_media()
             menu = Interface(config, lib, db, media)
-            print("Media Files:")
-            menu.print_list_indexes(media.files)
-            print("Tags:")
-            menu.print_list_indexes(media.tags)
+            print_media_summary(media, menu)
+            media.play_media()
+            print_media_summary(media, menu)
             menu_action = menu.media_menu()
             logger.debug(menu_action)
             if menu_action == "next":
@@ -50,6 +48,13 @@ def main():
                 random.shuffle(library_list)
                 continue
         logger.warning("No more media.")
+
+def print_media_summary(media, menu):
+    print("\n\nMedia Files:")
+    menu.print_list_indexes(media.files)
+    print("Tags:")
+    menu.print_list_indexes(media.tags)
+
 
 if __name__ == '__main__':
     main()
