@@ -207,7 +207,7 @@ class Interface(object):
             self.lib.populate_from_db(self.config)
             return "library_update"
         elif action == "p":
-            self.db.local_to_s3()
+            self.db.local_to_s3(force=True)
         elif action == "d":
             self.db.s3_sync_toggle(enable=False)
         elif action == "x":

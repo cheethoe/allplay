@@ -88,7 +88,7 @@ class Database(object):
         else:
             self.logger.debug("Skipping sync from S3, s3 config options incomplete.")
 
-    def local_to_s3(self):
+    def local_to_s3(self, force=False):
         if self.s3_database_bucket and self.s3_database_filename:
             if os.path.isfile(self.local_database):
                 timezone = get_localzone()
@@ -99,7 +99,7 @@ class Database(object):
                     s3 = session.resource('s3')
                     s3file = s3.Object(self.s3_database_bucket, self.s3_database_filename)
                     s3_last_modified = s3file.last_modified.astimezone(timezone)
-                    if s3_last_modified < local_last_modified:
+                    if s3_last_modified < local_last_modified or force:
                         self.logger.warning("Uploading from Local ( %s ) to S3 ( %s ) due to modification date: " % (str(local_last_modified), str(s3_last_modified)))
                         s3file.upload_file(self.local_database)
                     else:
