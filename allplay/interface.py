@@ -89,7 +89,7 @@ class Interface(object):
     def media_add_tags(self):
         if self.config.quick_tags is not None:
             print("Select from the following quick tags:")
-            for quick_tag, full_tag in self.config.quick_tags.items():
+            for quick_tag, full_tag in sorted(self.config.quick_tags.items()):
                 print ('({0}) {1}'.format(quick_tag, full_tag))
             print("Or...")
         input_tags = input("Input the tags to add (space separated), or 'c' to cancel: ").split()
