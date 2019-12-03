@@ -9,24 +9,29 @@ import sys
 class Library(object):
     def __init__(self, db):
         self.library = defaultdict()
+        self.library_list = []
         self.library_scanned = {}
         self.logger = logging.getLogger()
         self.db = db
         self.sql = '''SELECT media_id, mount_alias, path, mtime, times_played FROM media'''
 
+
     def populate_from_db(self, config, sql=None, sql_params=None):
         self.library.clear()
+        del self.library_list[:]
         if sql is not None:
             if sql_params is None:
                 iterator = self.db.db_query_iterator(sql)
             else:
-                iterator = self.db.db_query_qmark_iterator(sql, sql_params)
+                iterator = self.db.db_query_qmark_iterator(query=sql, parameters=sql_params)
         else:
             iterator = self.db.db_query_iterator(self.sql)
         
         for entry in iterator:
             (media_id, mount_alias, path, mtime, times_played) = entry
             full_path = os.path.join(config.media_sources[mount_alias], path)
+            self.logger.debug("Adding entry for {0}.".format(full_path))
+            self.library_list.append(full_path)
             self.library[full_path] = { "media_id": media_id,
                                         "mount_alias": mount_alias,
                                         "path": path,
@@ -35,6 +40,20 @@ class Library(object):
                                       }
         self.db.sqlite_conn.commit()
         self.logger.debug("populate_from_db Library: %s" % self.library)
+
+
+    def populate_from_db_sort(self, config, sort_by=None, desc=None):
+        sql = self.sql
+        sql_params = list()
+        sql += ' ORDER BY ?'
+        sql_params.append(sort_by)
+        if desc:
+            sql += ' DESC'
+        else:
+            sql += ' ASC'
+        self.logger.warning(sql)
+        self.logger.warning(sql_params)
+        self.populate_from_db(config=config, sql=sql, sql_params=tuple(sql_params))
 
 
     def populate_from_db_search(self, config, tags=list(), tag_andor="or", search_strings=list(), search_strings_andor="or"):
@@ -82,8 +101,8 @@ class Library(object):
         self.logger.debug(sql)
         self.logger.debug(sql_params)
         self.populate_from_db(config, sql, tuple(sql_params))
-                    
-                
+
+
     def decode_name(self, name):
         # Attempt to deal with unicode decoding error.
         if type(name) == str: # leave unicode ones alone
@@ -173,6 +192,7 @@ class Library(object):
             pass
         self.logger.debug("scan_source Scanned Library updates: %s" % self.library_scanned)
 
+
     def scan_for_media_files(self, config, path):
         # Just scan for files in a dir that match the configured media extensions
         # I'm hoping this will be lighter weight than an os.walk()
@@ -195,6 +215,7 @@ class Library(object):
             self.logger.warning("Exception scanning %s: %s" % (path, sys.exc_info()[0]))
             pass
 
+
     def scanned_to_library_and_db(self, config):
         self.library.update(self.library_scanned)
         for full_path, value_dict in self.library_scanned.items():
@@ -204,6 +225,7 @@ class Library(object):
                                                                                                                              value_dict["mtime"],
                                                                                                                              value_dict["times_played"]))
         self.db.sqlite_conn.commit()
+
 
     def delete_from_library_and_db(self, media_entry):
         if self.library[media_entry] is not None:

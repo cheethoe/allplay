@@ -30,7 +30,7 @@ def main():
         random.shuffle(library_list)
         while len(library_list) > 0:
             logger.warning("Media {0} of {1}".format(str(len(library_list)), str(orig_library_length)))
-            full_path = library_list.pop()
+            full_path = library_list.pop(0)
             media = Media(config, lib, db, full_path)
             media.get_tags()
             menu = Interface(config, lib, db, media)
@@ -47,6 +47,11 @@ def main():
                 orig_library_length = len(lib.library)
                 random.shuffle(library_list)
                 continue
+            elif menu_action == "library_update_no_shuffle":
+                logger.warn("Library has been updated, using new library.")
+                library_list = lib.library_list
+                orig_library_length = len(lib.library_list)
+                continue
         logger.warning("No more media.")
 
 def print_media_summary(media, menu):
@@ -54,6 +59,8 @@ def print_media_summary(media, menu):
     menu.print_list_indexes(media.files)
     print("Tags:")
     menu.print_list_indexes(media.tags)
+    print("Times Played: {0}".format(str(media.times_played)))
+    print("Modified Time: {0}".format(str(media.mtime)))
 
 
 if __name__ == '__main__':

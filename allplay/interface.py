@@ -111,6 +111,10 @@ class Interface(object):
 
     def library_menu(self):
         menu_text = ("Library Actions:\n"
+                     "(l) Least Played\n"
+                     "(m) Most Played\n"
+                     "(n) Newest\n"
+                     "(o) Oldest\n"
                      "(r) Rescan\n"
                      "(st) Search Tags\n"
                      "(ss) Search String\n"
@@ -122,7 +126,23 @@ class Interface(object):
                      "Please make a selection: ")
         action = input(menu_text)
         return_action = "library_update"
-        if action == "r":
+        if action == "l":
+            print("Getting least played media.")
+            self.lib.populate_from_db_sort(self.config, sort_by="times_played", desc=False)
+            return "library_update_no_shuffle"
+        elif action == "m":
+            print("Getting most played media.")
+            self.lib.populate_from_db_sort(self.config, sort_by="times_played", desc=True)
+            return "library_update_no_shuffle"
+        elif action == "n":
+            print("Getting newest media.")
+            self.lib.populate_from_db_sort(self.config, sort_by="mtime", desc=True)
+            return "library_update_no_shuffle"
+        elif action == "o":
+            print("Getting oldest media.")
+            self.lib.populate_from_db_sort(self.config, sort_by="mtime", desc=False)
+            return "library_update_no_shuffle"
+        elif action == "r":
             return self.library_rescan()
         elif action == "st":
             return self.library_search_tags()
