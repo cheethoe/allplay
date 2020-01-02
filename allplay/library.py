@@ -14,6 +14,7 @@ class Library(object):
         self.library_scanned = {}
         self.logger = logging.getLogger()
         self.db = db
+        self.mode = "random"
         self.sql = '''SELECT media_id, mount_alias, path, mtime, times_played FROM media'''
 
 
@@ -139,6 +140,11 @@ class Library(object):
                         self.logger.warning("Scanning possible media dir %s" % full_entry)
                         media_files = self.scan_for_media_files(config, full_entry)
                         try:
+                            # If the generator is empty, StopIteration should be captured
+                            # We also check to see if the returned type from next is a generator,
+                            # This occurs as we use yield to recurse so if there are sub directories
+                            # It'll recurse and return another generator instead of a file or empty generator.
+                            # I'm sure there's a better way to recurse without a generator in a generator.
                             media_file = next(media_files)
                             while isinstance(media_file, types.GeneratorType):
                                 media_file = next(media_files)

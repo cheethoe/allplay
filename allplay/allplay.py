@@ -36,9 +36,9 @@ def main():
             if set(config.default_exclusion_tags).intersection(set(media.tags)):
                 continue
             menu = Interface(config, lib, db, media)
-            print_media_summary(media, menu)
+            print_media_summary(media, menu, lib)
             media.play_media()
-            print_media_summary(media, menu)
+            print_media_summary(media, menu, lib)
             menu_action = menu.media_menu()
             logger.debug(menu_action)
             if menu_action == "next":
@@ -56,13 +56,14 @@ def main():
                 continue
         logger.warning("No more media.")
 
-def print_media_summary(media, menu):
+def print_media_summary(media, menu, library):
     print("\n\nMedia Files:")
     menu.print_list_indexes(media.files)
     print("Tags:")
     menu.print_list_indexes(media.tags)
     print("Times Played: {0}".format(str(media.times_played)))
     print("Modified Time: {0}".format(str(media.mtime)))
+    print("### MODE:\n### {0}".format(library.mode))
 
 
 if __name__ == '__main__':

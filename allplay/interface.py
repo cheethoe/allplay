@@ -129,18 +129,22 @@ class Interface(object):
         if action == "l":
             print("Getting least played media.")
             self.lib.populate_from_db_sort(self.config, sort_by="times_played", desc=False)
+            self.lib.mode = "Least Played"
             return "library_update_no_shuffle"
         elif action == "m":
             print("Getting most played media.")
             self.lib.populate_from_db_sort(self.config, sort_by="times_played", desc=True)
+            self.lib.mode = "Most Played"
             return "library_update_no_shuffle"
         elif action == "n":
             print("Getting newest media.")
             self.lib.populate_from_db_sort(self.config, sort_by="mtime", desc=True)
+            self.lib.mode = "Newest media"
             return "library_update_no_shuffle"
         elif action == "o":
             print("Getting oldest media.")
             self.lib.populate_from_db_sort(self.config, sort_by="mtime", desc=False)
+            self.lib.mode = "Oldest media"
             return "library_update_no_shuffle"
         elif action == "r":
             return self.library_rescan()
@@ -183,6 +187,7 @@ class Interface(object):
         if "c" in input_tags:
             return "menu"
         self.lib.populate_from_db_search(self.config, tags=input_tags)
+        self.lib.mode = "Search Tags: {0}".format(", ".join(input_tags))
         return "library_update"
 
     def library_search_strings(self):
@@ -190,6 +195,7 @@ class Interface(object):
         if "c" in input_strings:
             return "menu"
         self.lib.populate_from_db_search(self.config, search_strings=input_strings)
+        self.lib.mode = "Search strings: {0}".format(", ".join(input_strings))
         return "library_update"
 
 
@@ -201,12 +207,14 @@ class Interface(object):
         if "c" in input_strings:
             return "menu"
         self.lib.populate_from_db_search(self.config, tags=input_tags, search_strings=input_strings)
+        self.lib.mode = "Search tags and strings: \n  tags: {0}\n  strings: {1}".format(", ".join(input_tags), ", ".join(input_strings))
         return "library_update"
 
     def library_rescan(self):
         for path_alias, path in self.config.media_sources.items():
             self.lib.scan_source(config=self.config, path_alias=path_alias, path=path)
         self.lib.scanned_to_library_and_db(self.config)
+        self.lib.mode = "random"
         return "library_update"
 
 
