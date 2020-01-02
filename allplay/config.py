@@ -25,6 +25,7 @@ class Config(object):
                                                                                "allplay.sqlite3")
         self.local_scan_delay = int(self.raw_config.get("local_scan_delay") or 86400)
         self.s3_database = self.raw_config.get("s3_database") or None
+        self.default_exclusion_tags = self.raw_config.get("default_exclusion_tags") or list()
         self.quick_tags = self.raw_config.get("quick_tags") or None
         self.auto_tags = self.raw_config.get("auto_tags") or None
         self.media_handler = self.raw_config.get("media_handler") or os.path.join("usr", "bin", "mpv")

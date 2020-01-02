@@ -5,6 +5,7 @@ from collections import defaultdict
 import logging
 import os
 import sys
+import types
 
 class Library(object):
     def __init__(self, db):
@@ -44,16 +45,14 @@ class Library(object):
 
     def populate_from_db_sort(self, config, sort_by=None, desc=None):
         sql = self.sql
-        sql_params = list()
-        sql += ' ORDER BY ?'
-        sql_params.append(sort_by)
+        sql += ' ORDER BY '
+        sql += sort_by
         if desc:
             sql += ' DESC'
         else:
             sql += ' ASC'
         self.logger.warning(sql)
-        self.logger.warning(sql_params)
-        self.populate_from_db(config=config, sql=sql, sql_params=tuple(sql_params))
+        self.populate_from_db(config=config, sql=sql)
 
 
     def populate_from_db_search(self, config, tags=list(), tag_andor="or", search_strings=list(), search_strings_andor="or"):
@@ -141,6 +140,9 @@ class Library(object):
                         media_files = self.scan_for_media_files(config, full_entry)
                         try:
                             media_file = next(media_files)
+                            while isinstance(media_file, types.GeneratorType):
+                                media_file = next(media_files)
+                            self.logger.warning("Found media file %s" % media_file)
                             self.library_scanned[basename] = { "mount_alias": path_alias,
                                                                "path": basename,
                                                                "mtime": datetime.datetime.fromtimestamp(os.path.getmtime(full_entry)),
@@ -175,6 +177,9 @@ class Library(object):
                         media_files = self.scan_for_media_files(config, entry.path)
                         try:
                             media_file = next(media_files)
+                            while isinstance(media_file, types.GeneratorType):
+                                media_file = next(media_files)
+                            self.logger.warning("Found media file %s" % media_file)
                             self.library_scanned[entry.path] = { "mount_alias": path_alias,
                                                                  "path": entry.name,
                                                                  "mtime": datetime.datetime.fromtimestamp(entry.stat().st_mtime),
@@ -206,6 +211,7 @@ class Library(object):
                     yield self.scan_for_media_files(config, full_path)
                 elif os.path.isfile(full_path):
                     if entry.split('.')[-1].lower() in config.media_extensions:
+                        self.logger.debug("Extension Match!: %s" % full_path)
                         yield full_path
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -214,6 +220,8 @@ class Library(object):
         except:
             self.logger.warning("Exception scanning %s: %s" % (path, sys.exc_info()[0]))
             pass
+
+
 
 
     def scanned_to_library_and_db(self, config):

@@ -33,6 +33,8 @@ def main():
             full_path = library_list.pop(0)
             media = Media(config, lib, db, full_path)
             media.get_tags()
+            if set(config.default_exclusion_tags).intersection(set(media.tags)):
+                continue
             menu = Interface(config, lib, db, media)
             print_media_summary(media, menu)
             media.play_media()
