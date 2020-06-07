@@ -114,6 +114,7 @@ class Library(object):
 
 
     def scan_source(self, config, path_alias='here', path='.'):
+        self.populate_from_db(config=config)
         #with os.scandir(path) as dir_entries:
         try:
             if sys.version_info[0] < 3:
@@ -233,6 +234,9 @@ class Library(object):
     def scanned_to_library_and_db(self, config):
         self.library.update(self.library_scanned)
         for full_path, value_dict in self.library_scanned.items():
+            # TODO: Check db to ensure we don't attempt to add an entry that already exists
+            # This can happen if the current running instance of the script has an older version
+            # of the library in memory.
             self.logger.warning("Adding entry to db: %s %s" % (full_path, value_dict))
             self.db.sqlite_cursor.execute('''INSERT INTO media (mount_alias, path, mtime, times_played) VALUES(?,?,?,?)''', (value_dict["mount_alias"],
                                                                                                                              value_dict["path"],
