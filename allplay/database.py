@@ -182,3 +182,11 @@ class Database(object):
         except ValueError as err:
             self.logger.warning(err)
             raise
+
+    def last_row_id(self):
+        ''' Returns the row id of the last insert/update/replace '''
+        try:
+            return self.sqlite_cursor.lastrowid
+        except Exception as err:
+            self.logger.warning(err)
+            raise

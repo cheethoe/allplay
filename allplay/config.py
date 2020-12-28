@@ -30,6 +30,7 @@ class Config(object):
         self.auto_tags = self.raw_config.get("auto_tags") or None
         self.media_handler = self.raw_config.get("media_handler") or os.path.join("usr", "bin", "mpv")
         self.media_extensions = self.raw_config.get("media_extensions") or list()
+        self.non_media_tag = self.raw_config.get("non_media_tag") or 'non.media'
 
     def loadConfig(self):
         if os.path.isfile(self.config_file):

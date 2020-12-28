@@ -6,12 +6,14 @@ import logging
 import os
 import sys
 import types
+from .tags import Tags
 
 class Library(object):
     def __init__(self, db):
         self.library = defaultdict()
         self.library_list = []
         self.library_scanned = {}
+        self.library_non_media = {}
         self.logger = logging.getLogger()
         self.db = db
         self.mode = "random"
@@ -158,6 +160,11 @@ class Library(object):
                             del media_files
                         except StopIteration:
                             self.logger.warning("No media found in dir %s" % full_entry)
+                            self.library_non_media[basename] = { "mount_alias": path_alias,
+                                                                 "path": basename,
+                                                                 "mtime": datetime.datetime.fromtimestamp(os.path.getmtime(full_entry)),
+                                                                 "times_played": 0
+                                                               }
                             del media_files
                             pass
                     else:
@@ -195,6 +202,11 @@ class Library(object):
                             del media_files
                         except StopIteration:
                             self.logger.warning("No media found in dir %s" % entry.path)
+                            self.library_non_media[entry.path] = { "mount_alias": path_alias,
+                                                                 "path": entry.name,
+                                                                 "mtime": datetime.datetime.fromtimestamp(entry.stat().st_mtime),
+                                                                 "times_played": 0
+                                                               }
                             del media_files
                             pass
         except (KeyboardInterrupt, SystemExit):
@@ -229,8 +241,6 @@ class Library(object):
             pass
 
 
-
-
     def scanned_to_library_and_db(self, config):
         self.library.update(self.library_scanned)
         for full_path, value_dict in self.library_scanned.items():
@@ -238,10 +248,25 @@ class Library(object):
             # This can happen if the current running instance of the script has an older version
             # of the library in memory.
             self.logger.warning("Adding entry to db: %s %s" % (full_path, value_dict))
-            self.db.sqlite_cursor.execute('''INSERT INTO media (mount_alias, path, mtime, times_played) VALUES(?,?,?,?)''', (value_dict["mount_alias"],
-                                                                                                                             value_dict["path"],
-                                                                                                                             value_dict["mtime"],
-                                                                                                                             value_dict["times_played"]))
+            self.db.sqlite_cursor.execute('''INSERT OR IGNORE INTO media (mount_alias, path, mtime, times_played) VALUES(?,?,?,?)''', (value_dict["mount_alias"],
+                                                                                                                                       value_dict["path"],
+                                                                                                                                       value_dict["mtime"],
+                                                                                                                                       value_dict["times_played"]))
+
+        # Load non media items so future scans don't rescan them.
+        # Instead lets just tag them as non media types so we can
+        # add to default exclusion tag in the config or just skip
+        # by default in code.
+        self.library.update(self.library_non_media)
+        for full_path, value_dict in self.library_non_media.items():
+            self.logger.warning("Adding non media entry to db: %s %s" % (full_path, value_dict))
+            self.db.sqlite_cursor.execute('''INSERT OR IGNORE INTO media (mount_alias, path, mtime, times_played) VALUES(?,?,?,?)''', (value_dict["mount_alias"],
+                                                                                                                                       value_dict["path"],
+                                                                                                                                       value_dict["mtime"],
+                                                                                                                                       value_dict["times_played"]))
+            insert_media_id = self.db.last_row_id()
+            media_tags = Tags(config, self.db, insert_media_id)
+            media_tags.add_tag(config.non_media_tag)
         self.db.sqlite_conn.commit()
 
 

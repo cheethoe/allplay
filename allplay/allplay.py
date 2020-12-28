@@ -32,8 +32,8 @@ def main():
             logger.warning("Media {0} of {1}".format(str(len(library_list)), str(orig_library_length)))
             full_path = library_list.pop(0)
             media = Media(config, lib, db, full_path)
-            media.get_tags()
-            if set(config.default_exclusion_tags).intersection(set(media.tags)):
+            media.tags.get_tags()
+            if set(config.default_exclusion_tags).intersection(set(media.tags.tags)):
                 continue
             menu = Interface(config, lib, db, media)
             print_media_summary(media, menu, lib)
@@ -60,7 +60,7 @@ def print_media_summary(media, menu, library):
     print("\n\nMedia Files:")
     menu.print_list_indexes(media.files)
     print("Tags:")
-    menu.print_list_indexes(media.tags)
+    menu.print_list_indexes(media.tags.tags)
     print("Times Played: {0}".format(str(media.times_played)))
     print("Modified Time: {0}".format(str(media.mtime)))
     print("### MODE:\n### {0}".format(library.mode))
