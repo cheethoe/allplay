@@ -1,6 +1,7 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 from builtins import input
 import sys
+from .tags import Tags
 
 class Interface(object):
     def __init__(self, config, lib, db, media):
@@ -8,6 +9,7 @@ class Interface(object):
         self.db = db
         self.lib = lib
         self.media = media
+        self.tags = Tags(self.config, self.db, self.media.media_id)
 
     def media_menu(self):
         menu_text = ("Media Actions:\n"
@@ -51,7 +53,7 @@ class Interface(object):
                 print("path: '{0}'".format(self.media.path))
                 print("mtime: '{0}'".format(self.media.mtime))
                 print("times_played: '{0}'".format(self.media.times_played))
-                print("tags: '{0}'".format(self.media.tags))
+                print("tags: '{0}'".format(self.tags.tags))
                 print("files: '{0}'".format(self.media.files))
             elif action == "x":
                 self.exit()
@@ -77,14 +79,14 @@ class Interface(object):
                     self.media.delete_file(int(delete_index))
 
     def media_delete_tags(self):
-        self.print_list_indexes(self.media.tags)
+        self.print_list_indexes(self.tags.tags)
         delete_indexes = input("Input the indexes to delete (space separated), or 'c' to cancel: ").split()
         for delete_index in delete_indexes:
             if delete_index.isdigit():
-                if int(delete_index) > len(self.media.tags) - 1 or int(delete_index) < 0:
+                if int(delete_index) > len(self.tags.tags) - 1 or int(delete_index) < 0:
                     print('{0} is an invalid index'.format(delete_index))
                 else:
-                    self.media.remove_tag(self.media.tags[int(delete_index)])
+                    self.tags.remove_tag(self.tags.tags[int(delete_index)])
 
     def media_add_tags(self):
         if self.config.quick_tags is not None:
@@ -99,13 +101,13 @@ class Interface(object):
             if self.config.quick_tags is not None:
                 # Check if tag matches a quick tag
                 if input_tag in self.config.quick_tags.keys():
-                    self.media.add_tag(self.config.quick_tags[input_tag])
+                    self.tags.add_tag(self.config.quick_tags[input_tag])
                     continue
-            self.media.add_tag(input_tag)
-        self.media.get_tags()
+            self.tags.add_tag(input_tag)
+        self.tags.get_tags()
         print('Current Tags for {0}:'.format(self.media.full_path))
-        if len(self.media.tags) > 0:
-            self.print_list_indexes(self.media.tags)
+        if len(self.tags.tags) > 0:
+            self.print_list_indexes(self.tags.tags)
         else:
             print("No Tags!")
 

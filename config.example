@@ -56,3 +56,4 @@ media_extensions:
   - mov
   - ogm
   - mp4
+non_media_tag: not.media
