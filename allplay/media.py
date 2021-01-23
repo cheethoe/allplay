@@ -23,11 +23,8 @@ class Media(object):
         if self.exists:
             self.files = self.get_files()
             if os.path.isdir(self.full_path) and len(self.files) == 0:
-                self.logger.warning("No media found at {0}, removing from library".format(self.full_path))
-                if self.tags.tags:
-                    for tag in self.tags.tags:
-                        self.tags.remove_tag(tag)
-                self.lib.delete_from_library_and_db(self.full_path)
+                self.logger.warning("No media found at {0}, tagging as {1}".format(self.full_path, self.config.non_media_tag))
+                self.tags.add_tag(config.non_media_tag)
         else:
             self.files = list()
             self.delete()
