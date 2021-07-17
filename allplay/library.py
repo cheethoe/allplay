@@ -58,7 +58,7 @@ class Library(object):
         self.populate_from_db(config=config, sql=sql)
 
 
-    def populate_from_db_search(self, config, tags=list(), tag_andor="or", search_strings=list(), search_strings_andor="or"):
+    def populate_from_db_search(self, config, tags=list(), tag_andor="and", search_strings=list(), search_strings_andor="or"):
         sql = self.sql
         sql_params = list()
         if len(tags) > 0 or len(search_strings) > 0:
@@ -77,16 +77,36 @@ class Library(object):
                 sql += "))"
             elif tag_andor == "and" and len(tags) > 0:
                 # Search for media with all of the listed tags
-                sql += " ("
+                tag_ids = list()
+                tag_sql = "SELECT tag_id FROM tags WHERE tag_name IN ("
                 for idx, tag in enumerate(tags):
+                    # First get a list of tag ids
                     if idx > 0:
-                        sql += " AND "
-                    sql += ''' media_id IN (SELECT mt.media_id
-                               FROM tags t, media_tags mt
-                               WHERE t.tag_id = mt.tag_id
-                               AND t.tag_name = ?'''
-                    sql_params.append(tag)
-                sql += " ))"
+                        tag_sql += ","
+                    tag_sql += "?"
+                tag_sql += " )"
+                self.logger.debug(tag_sql)
+                self.logger.debug(tags)
+                iterator = self.db.db_query_qmark_iterator(query=tag_sql, parameters=tags)
+
+                # Now get media ids that match all tagids
+                sql += ''' media_id IN (SELECT media_id
+                           FROM media_tags
+                           WHERE
+                           tag_id in ('''
+                iterator_idx = 0
+                for tag_id in iterator:
+                    if iterator_idx > 0:
+                        sql += ","
+                    sql += "?"
+                    sql_params.append(tag_id[0])
+                    iterator_idx += 1
+                sql += ''')
+                          GROUP BY media_id
+                          HAVING COUNT(media_id) = ?
+                          )'''
+                sql_params.append(iterator_idx)
+
             if len(search_strings) > 0:
                 # Build portion of query for search strings in path
                 if len(sql_params) > 0:
