@@ -55,6 +55,7 @@ class Interface(object):
                 print("times_played: '{0}'".format(self.media.times_played))
                 print("tags: '{0}'".format(self.tags.tags))
                 print("files: '{0}'".format(self.media.files))
+                print("Size: {0}".format(str(self.media.media_size)))
             elif action == "x":
                 self.exit()
         if return_action == "menu":

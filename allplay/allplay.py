@@ -63,6 +63,7 @@ def print_media_summary(media, menu, library):
     menu.print_list_indexes(media.tags.tags)
     print("Times Played: {0}".format(str(media.times_played)))
     print("Modified Time: {0}".format(str(media.mtime)))
+    print("Size: {0}".format(str(media.media_size)))
     print("### MODE:\n### {0}".format(library.mode))
 
 

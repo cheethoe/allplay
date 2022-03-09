@@ -13,11 +13,16 @@ class Media(object):
         self.lib = library_object
         self.logger = logging.getLogger()
         self.full_path = full_path
-        self.media_id = self.lib.library[self.full_path]["media_id"]
-        self.mount_alias = self.lib.library[self.full_path]["mount_alias"]
-        self.path = self.lib.library[self.full_path]["path"]
-        self.mtime = self.lib.library[self.full_path]["mtime"]
-        self.times_played = self.lib.library[self.full_path]["times_played"]
+        try:
+            self.media_id = self.lib.library[self.full_path]["media_id"]
+            self.mount_alias = self.lib.library[self.full_path]["mount_alias"]
+            self.path = self.lib.library[self.full_path]["path"]
+            self.mtime = self.lib.library[self.full_path]["mtime"]
+            self.times_played = self.lib.library[self.full_path]["times_played"]
+        except KeyError as err:
+            logger.error(f"Error accessing Library media Key: {err}")
+            logger.error(self.lib.library[self.full_path])
+            raise
         self.tags = Tags(self.config, self.db, self.media_id)
         self.exists = os.path.exists(self.full_path)
         if self.exists:
@@ -28,6 +33,7 @@ class Media(object):
         else:
             self.files = list()
             self.delete()
+        self.media_size = self.get_media_size()
 
     def increment_times_played(self):
         sql = '''UPDATE media
@@ -53,6 +59,40 @@ class Media(object):
                     self.logger.debug("Extension Match!: %s in %s" % (found_file, path))
                     media_files.append(os.path.join(path, found_file))
         return sorted(media_files)
+
+
+    def get_media_size(self):
+        """
+        Loop through discovered files and sum up the file sizes.  Return Human readable form.
+        """
+        kb = 1024
+        mb = 1024 * 1024
+        gb = mb * 1024
+        file_size_total = 0
+        metric = "Bytes"
+        if len(self.files) == 0 and os.path.isfile(self.full_path):
+            try:
+                file_size_total += os.path.getsize(self.full_path)
+            except OSError as err:
+                self.logger.error("File %s is inaccessible: %s" % (self.full_path, err))
+        else:
+            for media_file in self.files:
+                try:
+                    file_size_total += os.path.getsize(media_file)
+                except OSError as err:
+                    self.logger.error("File %s is inaccessible: %s" % (media_file, err))
+        if file_size_total >= gb:
+            file_size_metric = file_size_total / gb
+            metric = "GB"
+        elif file_size_total >= mb:
+            file_size_metric = file_size_total / mb
+            metric = "MB"
+        elif file_size_total >= kb:
+            file_size_metric = file_size_total / kb
+            metric = "KB"
+        else:
+            file_size_metric = file_size_total
+        return f'{file_size_metric:.2f} {metric}'
 
     def delete(self):
         if os.path.normpath(self.full_path) == "/":
