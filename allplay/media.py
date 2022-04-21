@@ -20,8 +20,8 @@ class Media(object):
             self.mtime = self.lib.library[self.full_path]["mtime"]
             self.times_played = self.lib.library[self.full_path]["times_played"]
         except KeyError as err:
-            logger.error(f"Error accessing Library media Key: {err}")
-            logger.error(self.lib.library[self.full_path])
+            self.logger.error(f"Error accessing Library media Key: {err}")
+            self.logger.error(self.lib.library[self.full_path])
             raise
         self.tags = Tags(self.config, self.db, self.media_id)
         self.exists = os.path.exists(self.full_path)
