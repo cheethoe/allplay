@@ -40,17 +40,17 @@ class Database(object):
     def local_db_modified(self, delta_minutes=1):
         timezone = get_localzone()
         if os.path.isfile(self.local_database):
-            local_last_modified = timezone.localize(datetime.datetime.fromtimestamp(os.path.getmtime(self.local_database)) + datetime.timedelta(minutes=delta_minutes))
+            local_last_modified = datetime.datetime.fromtimestamp(os.path.getmtime(self.local_database)) + datetime.timedelta(minutes=delta_minutes)
         else:
-            local_last_modified = timezone.localize(datetime.datetime.min + datetime.timedelta(minutes=30000))
-        return local_last_modified
+            local_last_modified = datetime.datetime.min + datetime.timedelta(minutes=30000)
+        return local_last_modified.replace(tzinfo=timezone)
 
     def local_db_age_sec(self):
         # Currently unused, can't remember why I wrote this
         # Remove if I really don't remember
         timezone = get_localzone()
         local_last_modified = self.local_db_modified()
-        delta = timezone.localize(datetime.datetime.now()) - local_last_modified
+        delta = datetime.datetime.now(timezone) - local_last_modified
         return int(delta.total_seconds())
 
     def s3_to_local(self):
@@ -80,7 +80,7 @@ class Database(object):
             except (KeyboardInterrupt, SystemExit):
                 raise
             except (ClientError, TypeError) as cerr:
-                self.logger.warning("Error attempting to sync from s3: %s" % cerr)
+                self.logger.warning("Error attempting to sync from s3 - client error: %s" % cerr)
                 pass
             except:
                 self.logger.warning("Error attempting to sync from s3: %s" % sys.exc_info()[0])
@@ -93,7 +93,6 @@ class Database(object):
             if os.path.isfile(self.local_database):
                 timezone = get_localzone()
                 local_last_modified = self.local_db_modified(delta_minutes=0)
-                #local_last_modified = timezone.localize(datetime.datetime.fromtimestamp(os.path.getmtime(self.local_database)))
                 try:
                     session = boto3.session.Session(profile_name=self.s3_database_profile)
                     s3 = session.resource('s3')
