@@ -148,6 +148,9 @@ class Media(object):
 
     def play_media(self):
         command = [ self.config.media_handler ]
+        if self.config.media_handler_arguments:
+            for argument in self.config.media_handler_arguments:
+                command.append(argument)
         if os.path.isfile(self.full_path):
             #formatted_full_path = '"' + self.full_path + '"'
             #command.append(formatted_full_path)
@@ -159,7 +162,7 @@ class Media(object):
                 command.append(media)
         try:
             self.logger.warning("trying to run command: %s" % (command))
-            playing = subprocess.Popen(command, env=dict(os.environ), stdout=subprocess.PIPE)
+            playing = subprocess.Popen(command, env=dict(os.environ), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             playing.wait()
             self.increment_times_played()
         except subprocess.CalledProcessError as err:
