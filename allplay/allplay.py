@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import (absolute_import, division, print_function, unicode_literals)
+import argparse
 import copy
 from .config import Config
 from .database import Database
@@ -12,7 +13,11 @@ import random
 import sys
 
 def main():
-    logging.basicConfig(stream=sys.stdout, level=logging.WARNING, format='%(message)s')
+    parser = argparse.ArgumentParser(description="AllPlay media manager")
+    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose/debug logging')
+    args = parser.parse_args()
+    log_level = logging.DEBUG if args.verbose else logging.WARNING
+    logging.basicConfig(stream=sys.stdout, level=log_level, format='%(message)s')
     logger = logging.getLogger()
     config = Config()
     #with Database(config.local_database) as db:
@@ -24,6 +29,7 @@ def main():
             for path_alias, path in config.media_sources.items():
                 lib.scan_source(config, path_alias, path)
             lib.scanned_to_library_and_db(config)
+            lib.update_missing_sizes(config)
         library_list = list(lib.library)
         orig_library_length = len(lib.library)
         random.seed()

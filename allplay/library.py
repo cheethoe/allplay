@@ -17,7 +17,7 @@ class Library(object):
         self.logger = logging.getLogger()
         self.db = db
         self.mode = "random"
-        self.sql = '''SELECT media_id, mount_alias, path, mtime, times_played FROM media'''
+        self.sql = '''SELECT media_id, mount_alias, path, mtime, times_played, media_size FROM media'''
 
 
     def populate_from_db(self, config, sql=None, sql_params=None):
@@ -32,7 +32,7 @@ class Library(object):
             iterator = self.db.db_query_iterator(self.sql)
         
         for entry in iterator:
-            (media_id, mount_alias, path, mtime, times_played) = entry
+            (media_id, mount_alias, path, mtime, times_played, media_size) = entry
             full_path = os.path.join(config.media_sources[mount_alias], path)
             self.logger.debug("Adding entry for {0}.".format(full_path))
             self.library_list.append(full_path)
@@ -40,14 +40,23 @@ class Library(object):
                                         "mount_alias": mount_alias,
                                         "path": path,
                                         "mtime": mtime,
-                                        "times_played": times_played
+                                        "times_played": times_played,
+                                        "media_size": media_size
                                       }
         self.db.sqlite_conn.commit()
         self.logger.debug("populate_from_db Library: %s" % self.library)
 
 
-    def populate_from_db_sort(self, config, sort_by=None, desc=None):
+    def populate_from_db_sort(self, config, sort_by=None, desc=None, exclude_tags=None):
         sql = self.sql
+        sql_params = []
+        if exclude_tags:
+            placeholders = ",".join("?" for _ in exclude_tags)
+            sql += ''' WHERE media_id NOT IN (SELECT mt.media_id
+                       FROM media_tags mt, tags t
+                       WHERE mt.tag_id = t.tag_id
+                       AND t.tag_name IN (''' + placeholders + '))'
+            sql_params.extend(exclude_tags)
         sql += ' ORDER BY '
         sql += sort_by
         if desc:
@@ -55,7 +64,7 @@ class Library(object):
         else:
             sql += ' ASC'
         self.logger.warning(sql)
-        self.populate_from_db(config=config, sql=sql)
+        self.populate_from_db(config=config, sql=sql, sql_params=tuple(sql_params) if sql_params else None)
 
 
     def populate_from_db_search(self, config, tags=list(), tag_andor="and", search_strings=list(), search_strings_andor="or"):
@@ -262,16 +271,19 @@ class Library(object):
 
 
     def scanned_to_library_and_db(self, config):
+        from .media import Media
         self.library.update(self.library_scanned)
         for full_path, value_dict in self.library_scanned.items():
             # TODO: Check db to ensure we don't attempt to add an entry that already exists
             # This can happen if the current running instance of the script has an older version
             # of the library in memory.
+            media_size = Media.calculate_media_size(config, full_path)
             self.logger.warning("Adding entry to db: %s %s" % (full_path, value_dict))
-            self.db.sqlite_cursor.execute('''INSERT OR IGNORE INTO media (mount_alias, path, mtime, times_played) VALUES(?,?,?,?)''', (value_dict["mount_alias"],
-                                                                                                                                       value_dict["path"],
-                                                                                                                                       value_dict["mtime"],
-                                                                                                                                       value_dict["times_played"]))
+            self.db.sqlite_cursor.execute('''INSERT OR IGNORE INTO media (mount_alias, path, mtime, times_played, media_size) VALUES(?,?,?,?,?)''', (value_dict["mount_alias"],
+                                                                                                                                                     value_dict["path"],
+                                                                                                                                                     value_dict["mtime"],
+                                                                                                                                                     value_dict["times_played"],
+                                                                                                                                                     media_size))
 
         # Load non media items so future scans don't rescan them.
         # Instead lets just tag them as non media types so we can
@@ -288,6 +300,38 @@ class Library(object):
             media_tags = Tags(config, self.db, insert_media_id)
             media_tags.add_tag(config.non_media_tag)
         self.db.sqlite_conn.commit()
+
+
+    def update_missing_sizes(self, config):
+        from .media import Media
+        iterator = self.db.db_query_iterator(
+            '''SELECT media_id, mount_alias, path FROM media WHERE media_size IS NULL''')
+        entries = list(iterator)
+        self.logger.warning("Found %s entries missing media_size" % len(entries))
+        updates = []
+        skipped = 0
+        for idx, entry in enumerate(entries):
+            (media_id, mount_alias, path) = entry
+            if mount_alias not in config.media_sources:
+                self.logger.debug("Skipping media_id %s: mount_alias '%s' not in config" % (media_id, mount_alias))
+                skipped += 1
+                continue
+            full_path = os.path.join(config.media_sources[mount_alias], path)
+            if not os.path.exists(full_path):
+                self.logger.debug("Skipping media_id %s: path does not exist: %s" % (media_id, full_path))
+                skipped += 1
+                continue
+            media_size = Media.calculate_media_size(config, full_path)
+            updates.append((media_size, media_id))
+            if (idx + 1) % 100 == 0:
+                self.logger.warning("Calculated size for %s/%s entries..." % (idx + 1, len(entries)))
+        self.logger.warning("Updating media_size for %s entries (%s skipped)" % (len(updates), skipped))
+        for media_size, media_id in updates:
+            self.db.sqlite_cursor.execute(
+                '''UPDATE media SET media_size = ? WHERE media_id = ?''',
+                (media_size, media_id))
+        if updates:
+            self.db.sqlite_conn.commit()
 
 
     def delete_from_library_and_db(self, media_entry):

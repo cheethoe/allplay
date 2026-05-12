@@ -149,6 +149,12 @@ class Database(object):
                           FOREIGN KEY(media_id) REFERENCES media(media_id),
                           FOREIGN KEY(tag_id) REFERENCES tags(tag_id)
                           )''')
+        # Add media_size column to existing databases
+        try:
+            self.sqlite_cursor.execute('''ALTER TABLE media ADD COLUMN media_size INTEGER DEFAULT NULL''')
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
         self.sqlite_conn.commit()
 
     def insert_test_data(self):

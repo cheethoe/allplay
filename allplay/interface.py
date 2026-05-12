@@ -118,6 +118,7 @@ class Interface(object):
                      "(m) Most Played\n"
                      "(n) Newest\n"
                      "(o) Oldest\n"
+                     "(s) Largest\n"
                      "(r) Rescan\n"
                      "(st) Search Tags\n"
                      "(ss) Search String\n"
@@ -131,23 +132,28 @@ class Interface(object):
         return_action = "library_update"
         if action == "l":
             print("Getting least played media.")
-            self.lib.populate_from_db_sort(self.config, sort_by="times_played", desc=False)
+            self.lib.populate_from_db_sort(self.config, sort_by="times_played", desc=False, exclude_tags=self.config.default_exclusion_tags)
             self.lib.mode = "Least Played"
             return "library_update_no_shuffle"
         elif action == "m":
             print("Getting most played media.")
-            self.lib.populate_from_db_sort(self.config, sort_by="times_played", desc=True)
+            self.lib.populate_from_db_sort(self.config, sort_by="times_played", desc=True, exclude_tags=self.config.default_exclusion_tags)
             self.lib.mode = "Most Played"
             return "library_update_no_shuffle"
         elif action == "n":
             print("Getting newest media.")
-            self.lib.populate_from_db_sort(self.config, sort_by="mtime", desc=True)
+            self.lib.populate_from_db_sort(self.config, sort_by="mtime", desc=True, exclude_tags=self.config.default_exclusion_tags)
             self.lib.mode = "Newest media"
             return "library_update_no_shuffle"
         elif action == "o":
             print("Getting oldest media.")
-            self.lib.populate_from_db_sort(self.config, sort_by="mtime", desc=False)
+            self.lib.populate_from_db_sort(self.config, sort_by="mtime", desc=False, exclude_tags=self.config.default_exclusion_tags)
             self.lib.mode = "Oldest media"
+            return "library_update_no_shuffle"
+        elif action == "s":
+            print("Getting largest media.")
+            self.lib.populate_from_db_sort(self.config, sort_by="media_size", desc=True, exclude_tags=self.config.default_exclusion_tags)
+            self.lib.mode = "Largest"
             return "library_update_no_shuffle"
         elif action == "r":
             return self.library_rescan()
@@ -217,6 +223,7 @@ class Interface(object):
         for path_alias, path in self.config.media_sources.items():
             self.lib.scan_source(config=self.config, path_alias=path_alias, path=path)
         self.lib.scanned_to_library_and_db(self.config)
+        self.lib.update_missing_sizes(self.config)
         self.lib.mode = "random"
         return "library_update"
 
